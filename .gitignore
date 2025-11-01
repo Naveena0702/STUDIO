@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/chronocare.db
+
+# Build outputs
+build/
+dist/
+*.log
+
+# Flutter
+chronocare_app/.dart_tool/
+chronocare_app/.flutter-plugins
+chronocare_app/.flutter-plugins-dependencies
+chronocare_app/.packages
+chronocare_app/.pub-cache/
+chronocare_app/.pub/
+chronocare_app/build/
+chronocare_app/.idea/
+chronocare_app/*.iml
+chronocare_app/.vscode/
+
+# Uploaded files
+backend/uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.doc
+*.docx
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+

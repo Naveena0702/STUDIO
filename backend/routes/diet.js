@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDB } = require('../database/database');
 const { authenticateToken } = require('../middleware/auth');
+const dietRecommender = require('../ml/dietRecommender');
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.use(authenticateToken);
 // Get all meal entries for the authenticated user
 router.get('/', (req, res) => {
   const db = getDB();
-  
+
   db.all(
     'SELECT * FROM meal_entries WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id],
@@ -19,7 +20,6 @@ router.get('/', (req, res) => {
         return res.status(500).json({ error: 'Database error' });
       }
       res.json({ meals });
-      db.close();
     }
   );
 });
@@ -28,7 +28,7 @@ router.get('/', (req, res) => {
 router.get('/date/:date', (req, res) => {
   const db = getDB();
   const date = req.params.date; // Format: YYYY-MM-DD
-  
+
   db.all(
     'SELECT * FROM meal_entries WHERE user_id = ? AND DATE(created_at) = ? ORDER BY created_at DESC',
     [req.user.id, date],
@@ -37,7 +37,6 @@ router.get('/date/:date', (req, res) => {
         return res.status(500).json({ error: 'Database error' });
       }
       res.json({ meals });
-      db.close();
     }
   );
 });
@@ -45,7 +44,7 @@ router.get('/date/:date', (req, res) => {
 // Get a specific meal entry
 router.get('/:id', (req, res) => {
   const db = getDB();
-  
+
   db.get(
     'SELECT * FROM meal_entries WHERE id = ? AND user_id = ?',
     [req.params.id, req.user.id],
@@ -57,7 +56,6 @@ router.get('/:id', (req, res) => {
         return res.status(404).json({ error: 'Meal entry not found' });
       }
       res.json({ meal });
-      db.close();
     }
   );
 });
@@ -76,11 +74,11 @@ router.post('/', (req, res) => {
   }
 
   const db = getDB();
-  
+
   db.run(
     'INSERT INTO meal_entries (user_id, food, calories, meal_type) VALUES (?, ?, ?, ?)',
     [req.user.id, food, calories, mealType],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Failed to create meal entry' });
       }
@@ -93,11 +91,10 @@ router.post('/', (req, res) => {
           if (err) {
             return res.status(500).json({ error: 'Failed to retrieve created meal' });
           }
-          res.status(201).json({ 
+          res.status(201).json({
             message: 'Meal entry created successfully',
-            meal 
+            meal
           });
-          db.close();
         }
       );
     }
@@ -113,11 +110,11 @@ router.put('/:id', (req, res) => {
   }
 
   const db = getDB();
-  
+
   db.run(
     'UPDATE meal_entries SET food = ?, calories = ?, meal_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
     [food, calories, mealType, req.params.id, req.user.id],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -133,11 +130,10 @@ router.put('/:id', (req, res) => {
           if (err) {
             return res.status(500).json({ error: 'Failed to retrieve updated meal' });
           }
-          res.json({ 
+          res.json({
             message: 'Meal entry updated successfully',
-            meal 
+            meal
           });
-          db.close();
         }
       );
     }
@@ -147,11 +143,11 @@ router.put('/:id', (req, res) => {
 // Delete a meal entry
 router.delete('/:id', (req, res) => {
   const db = getDB();
-  
+
   db.run(
     'DELETE FROM meal_entries WHERE id = ? AND user_id = ?',
     [req.params.id, req.user.id],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -159,7 +155,6 @@ router.delete('/:id', (req, res) => {
         return res.status(404).json({ error: 'Meal entry not found' });
       }
       res.json({ message: 'Meal entry deleted successfully' });
-      db.close();
     }
   );
 });
@@ -167,7 +162,7 @@ router.delete('/:id', (req, res) => {
 // Get nutrition summary
 router.get('/analytics/summary', (req, res) => {
   const db = getDB();
-  
+
   db.all(
     'SELECT * FROM meal_entries WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id],
@@ -185,8 +180,6 @@ router.get('/analytics/summary', (req, res) => {
         totalCalories,
         averageCalories: parseInt(avgCalories)
       });
-
-      db.close();
     }
   );
 });
@@ -195,7 +188,7 @@ router.get('/analytics/summary', (req, res) => {
 router.get('/analytics/today', (req, res) => {
   const db = getDB();
   const today = new Date().toISOString().split('T')[0];
-  
+
   db.all(
     'SELECT * FROM meal_entries WHERE user_id = ? AND DATE(created_at) = ?',
     [req.user.id, today],
@@ -215,10 +208,81 @@ router.get('/analytics/today', (req, res) => {
         averageCalories: parseInt(avgCalories),
         meals
       });
-
-      db.close();
     }
   );
+});
+
+// Get AI diet recommendations
+router.get('/recommendations', async (req, res) => {
+  try {
+    const db = getDB();
+
+    // Get user profile
+    db.get(
+      'SELECT * FROM user_profiles WHERE user_id = ?',
+      [req.user.id],
+      async (err, profile) => {
+        if (err) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!profile) {
+          return res.status(404).json({
+            error: 'Profile not found. Please set up your profile first.'
+          });
+        }
+
+        // Get today's consumed meals
+        const today = new Date().toISOString().split('T')[0];
+        db.all(
+          `SELECT SUM(calories) as total_calories, 
+                  SUM(proteins) as total_protein, 
+                  SUM(carbs) as total_carbs, 
+                  SUM(fats) as total_fats
+           FROM meal_entries 
+           WHERE user_id = ? AND DATE(created_at) = ?`,
+          [req.user.id, today],
+          async (err, consumed) => {
+            if (err) {
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            const consumedToday = {
+              calories: consumed[0]?.total_calories || 0,
+              protein: consumed[0]?.total_protein || 0,
+              carbs: consumed[0]?.total_carbs || 0,
+              fats: consumed[0]?.total_fats || 0
+            };
+
+            // Generate meal plan
+            const mealPlan = await dietRecommender.generateMealPlan(profile, consumedToday);
+
+            // Save recommendation
+            db.run(
+              `INSERT INTO diet_recommendations 
+               (user_id, recommendation_type, meal_plan, calories_target, macros_target)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                req.user.id,
+                'daily_plan',
+                JSON.stringify(mealPlan.meal_plan),
+                mealPlan.daily_calories,
+                JSON.stringify(mealPlan.daily_macros)
+              ]
+            );
+
+            res.json({
+              meal_plan: mealPlan,
+              consumed_today: consumedToday
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Diet recommendation error:', error);
+    res.status(500).json({ error: 'Failed to generate recommendations', message: error.message });
+  }
 });
 
 module.exports = router;

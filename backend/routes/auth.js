@@ -54,8 +54,6 @@ router.post('/register', async (req, res) => {
               name: name || null
             }
           });
-
-          db.close();
         }
       );
     });
@@ -106,8 +104,6 @@ router.post('/login', async (req, res) => {
           name: user.name
         }
       });
-
-      db.close();
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error', message: error.message });

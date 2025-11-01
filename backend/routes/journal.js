@@ -19,7 +19,6 @@ router.get('/', (req, res) => {
         return res.status(500).json({ error: 'Database error' });
       }
       res.json({ entries });
-      db.close();
     }
   );
 });
@@ -39,7 +38,6 @@ router.get('/:id', (req, res) => {
         return res.status(404).json({ error: 'Journal entry not found' });
       }
       res.json({ entry });
-      db.close();
     }
   );
 });
@@ -78,7 +76,6 @@ router.post('/', (req, res) => {
             message: 'Journal entry created successfully',
             entry 
           });
-          db.close();
         }
       );
     }
@@ -118,7 +115,6 @@ router.put('/:id', (req, res) => {
             message: 'Journal entry updated successfully',
             entry 
           });
-          db.close();
         }
       );
     }
@@ -140,7 +136,6 @@ router.delete('/:id', (req, res) => {
         return res.status(404).json({ error: 'Journal entry not found' });
       }
       res.json({ message: 'Journal entry deleted successfully' });
-      db.close();
     }
   );
 });
@@ -170,8 +165,6 @@ router.get('/analytics/summary', (req, res) => {
         averageMood: avgMood ? parseFloat(avgMood) : null,
         averageEnergy: avgEnergy ? parseFloat(avgEnergy) : null
       });
-
-      db.close();
     }
   );
 });
