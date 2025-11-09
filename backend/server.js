@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { initDatabase } = require('./config/database');
+
 
 // Load environment variables
 dotenv.config();
@@ -63,6 +65,8 @@ app.use((err, req, res, next) => {
     message: err.message
   });
 });
+// Initialize SQLite database
+initDatabase();
 
 // Start server
 app.listen(PORT, () => {

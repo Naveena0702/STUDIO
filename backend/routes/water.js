@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDB } = require('../database/database');
+const { getDB } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const waterPredictor = require('../ml/waterPredictor');
 

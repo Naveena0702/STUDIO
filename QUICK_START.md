@@ -60,7 +60,12 @@ flutter run
    ```
 2. Update `chronocare_app/lib/services/api_service.dart` line 10:
    ```dart
-   static const String baseUrl = 'http://YOUR_IP:3000/api';
+   // Automatically detect environment and choose backend URL
+static const String baseUrl = String.fromEnvironment('FLUTTER_WEB') != null
+    ? 'https://chronocare.onrender.com/api' // for web or deployed app
+    : 'http://10.0.2.2:3000/api'; // for Android emulator (use your local backend)
+
+   
    ```
    Example: `http://192.168.1.100:3000/api`
 

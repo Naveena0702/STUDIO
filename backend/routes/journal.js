@@ -1,5 +1,7 @@
 const express = require('express');
-const { getDB } = require('../database/database');
+
+const { getDB } = require('../config/database');
+
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -10,7 +12,7 @@ router.use(authenticateToken);
 // Get all journal entries for the authenticated user
 router.get('/', (req, res) => {
   const db = getDB();
-  
+
   db.all(
     'SELECT * FROM journal_entries WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id],
@@ -26,7 +28,7 @@ router.get('/', (req, res) => {
 // Get a specific journal entry
 router.get('/:id', (req, res) => {
   const db = getDB();
-  
+
   db.get(
     'SELECT * FROM journal_entries WHERE id = ? AND user_id = ?',
     [req.params.id, req.user.id],
@@ -55,11 +57,11 @@ router.post('/', (req, res) => {
   }
 
   const db = getDB();
-  
+
   db.run(
     'INSERT INTO journal_entries (user_id, content, mood, energy) VALUES (?, ?, ?, ?)',
     [req.user.id, content, mood, energy],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Failed to create journal entry' });
       }
@@ -72,9 +74,9 @@ router.post('/', (req, res) => {
           if (err) {
             return res.status(500).json({ error: 'Failed to retrieve created entry' });
           }
-          res.status(201).json({ 
+          res.status(201).json({
             message: 'Journal entry created successfully',
-            entry 
+            entry
           });
         }
       );
@@ -91,11 +93,11 @@ router.put('/:id', (req, res) => {
   }
 
   const db = getDB();
-  
+
   db.run(
     'UPDATE journal_entries SET content = ?, mood = ?, energy = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
     [content, mood, energy, req.params.id, req.user.id],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -111,9 +113,9 @@ router.put('/:id', (req, res) => {
           if (err) {
             return res.status(500).json({ error: 'Failed to retrieve updated entry' });
           }
-          res.json({ 
+          res.json({
             message: 'Journal entry updated successfully',
-            entry 
+            entry
           });
         }
       );
@@ -124,11 +126,11 @@ router.put('/:id', (req, res) => {
 // Delete a journal entry
 router.delete('/:id', (req, res) => {
   const db = getDB();
-  
+
   db.run(
     'DELETE FROM journal_entries WHERE id = ? AND user_id = ?',
     [req.params.id, req.user.id],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -143,7 +145,7 @@ router.delete('/:id', (req, res) => {
 // Get journal analytics
 router.get('/analytics/summary', (req, res) => {
   const db = getDB();
-  
+
   db.all(
     'SELECT * FROM journal_entries WHERE user_id = ? ORDER BY created_at DESC',
     [req.user.id],
@@ -153,7 +155,7 @@ router.get('/analytics/summary', (req, res) => {
       }
 
       const totalEntries = entries.length;
-      const avgMood = totalEntries > 0 
+      const avgMood = totalEntries > 0
         ? (entries.reduce((sum, e) => sum + e.mood, 0) / totalEntries).toFixed(2)
         : null;
       const avgEnergy = totalEntries > 0

@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDB } = require('../database/database');
+const { getDB } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();

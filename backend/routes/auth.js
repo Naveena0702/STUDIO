@@ -1,7 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { getDB } = require('../database/database');
+
+const { getDB } = require('../config/database');
+
 
 const router = express.Router();
 
@@ -15,13 +17,13 @@ router.post('/register', async (req, res) => {
     }
 
     const db = getDB();
-    
+
     // Check if user already exists
     db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
-      
+
       if (user) {
         return res.status(400).json({ error: 'User already exists' });
       }
@@ -33,7 +35,7 @@ router.post('/register', async (req, res) => {
       db.run(
         'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
         [email, hashedPassword, name || null],
-        function(err) {
+        function (err) {
           if (err) {
             return res.status(500).json({ error: 'Failed to create user' });
           }
@@ -72,7 +74,7 @@ router.post('/login', async (req, res) => {
     }
 
     const db = getDB();
-    
+
     db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
