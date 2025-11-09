@@ -8,7 +8,8 @@ class ApiService {
   // For iOS simulator: http://localhost:3000
   // For physical device: http://YOUR_IP_ADDRESS:3000
   
-  static const String baseUrl = 'http://localhost:3000/api';
+  
+  static const String baseUrl = 'https://chronocareapp.onrender.com/api';
 
   
 
