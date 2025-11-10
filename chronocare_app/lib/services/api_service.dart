@@ -1,18 +1,15 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Change this to your backend URL (use your local IP for testing on physical device)
-  // For Android emulator: http://10.0.2.2:3000
-  // For iOS simulator: http://localhost:3000
-  // For physical device: http://YOUR_IP_ADDRESS:3000
+  // TEMP FIX: Force Android emulator endpoint and updated port (backend now on 3001).
+  // Replace with your deployed URL when you move to production, e.g.:
+  // static const String baseUrl = 'https://your-app.onrender.com/api';
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
   
-  
-  static const String baseUrl = 'https://chronocareapp.onrender.com/api';
-
-  
-
   // Get stored token
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();

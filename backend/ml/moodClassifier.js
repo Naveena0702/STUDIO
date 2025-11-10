@@ -67,9 +67,16 @@ class MoodClassifier {
     const confidence = maxScore > 0 ? Math.min(maxScore / 3, 0.95) : 0.5;
 
     // Analyze sentiment using natural
-    const analyzer = new natural.SentimentAnalyzer('English',
-      natural.PorterStemmer, ['negation']);
-    const sentiment = analyzer.getSentiment(tokens);
+    // Note: Some versions of 'natural' do not support a 'negation' option array.
+    // We fall back to the default AFINN-based analyzer without extra language features.
+    let sentiment = 0;
+    try {
+      const analyzer = new natural.SentimentAnalyzer('English', natural.PorterStemmer);
+      sentiment = analyzer.getSentiment(tokens);
+    } catch (err) {
+      // Safe fallback if sentiment analyzer instantiation fails on this platform/version
+      sentiment = 0;
+    }
 
     // Adjust based on sentiment
     let finalMood = detectedMood;

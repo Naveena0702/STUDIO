@@ -23,19 +23,20 @@ Backend REST API for the ChronoCare health management application.
 npm install
 ```
 
-2. Create a `.env` file from the example:
-```bash
-cp .env.example .env
-```
-
-3. Update `.env` with your configuration:
+2. Create a `.env` file with your configuration:
 ```
 PORT=3000
+NODE_ENV=production
 JWT_SECRET=your-secret-key-change-this-in-production
-NODE_ENV=development
+# Optional CORS (comma-separated origins): ALLOWED_ORIGINS=https://yourapp.com,https://admin.yourapp.com
+# Optional S3 config (uncomment if using cloud storage for medical records)
+# S3_BUCKET=your-bucket-name
+# AWS_REGION=us-east-1
+# AWS_ACCESS_KEY_ID=YOUR_KEY
+# AWS_SECRET_ACCESS_KEY=YOUR_SECRET
 ```
 
-4. Initialize the database:
+3. Initialize the database:
 ```bash
 npm run init-db
 ```
@@ -203,15 +204,15 @@ The backend uses:
 
 - Passwords are hashed using bcrypt before storage
 - JWT tokens are used for authentication
-- CORS is enabled for cross-origin requests
+- CORS is restricted via `ALLOWED_ORIGINS` in production
+- Basic rate limiting is enabled for `/api`
+- Request logging via `morgan`
 - Database uses foreign key constraints and cascading deletes
 
 ## Future Enhancements
 
 - Integration with AI services for symptom analysis
 - Email verification
-- Password reset functionality
-- Rate limiting
-- Input validation and sanitization
+- Password reset email sender
 - Migration to PostgreSQL for production use
 - API documentation with Swagger/OpenAPI
