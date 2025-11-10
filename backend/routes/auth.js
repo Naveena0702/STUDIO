@@ -142,4 +142,27 @@ router.get('/verify', (req, res) => {
 });
 
 module.exports = router;
+// ✅ Check Auth Status
+router.get('/status', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ valid: false, message: 'Token missing' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
+    return res.status(200).json({
+      valid: true,
+      message: 'Token is valid',
+      user: {
+        id: decoded.id,
+        email: decoded.email
+      }
+    });
+  } catch (err) {
+    return res.status(401).json({ valid: false, message: 'Invalid or expired token' });
+  }
+});
 
