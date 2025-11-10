@@ -3,17 +3,24 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { initDatabase } = require('./config/database');
 
-
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// ⚡️ Use Render’s dynamic port (don’t lock to 3000)
+const PORT = process.env.PORT || 10000;
+
+// ⚡️ Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ⚡️ Stronger CORS setup — allows mobile Flutter app access
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -57,6 +64,14 @@ app.get('/', (req, res) => {
   });
 });
 
+// ⚡️ Catch-all route for undefined endpoints
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint not found',
+    path: req.originalUrl
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -65,11 +80,12 @@ app.use((err, req, res, next) => {
     message: err.message
   });
 });
-// Initialize SQLite database
+
+// ⚡️ Initialize SQLite database before starting server
 initDatabase();
 
-// Start server
-app.listen(PORT, () => {
+// ⚡️ Start server
+app.listen(PORT, '0.0.0.0', () => { // ← Listen on all network interfaces!
   console.log(`🚀 ChronoCare Backend Server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
 });
