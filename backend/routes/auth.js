@@ -5,9 +5,7 @@ const { getDB } = require('../config/database');
 
 const router = express.Router();
 
-/* =========================
-   REGISTER NEW USER
-========================= */
+// ✅ Register new user
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -17,152 +15,41 @@ router.post('/register', async (req, res) => {
     }
 
     const db = getDB();
-
-    // ✅ Check if user already exists
-    const existingUser = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    const existingUser = await db.collection('users').findOne({ email });
 
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = { email, password: hashedPassword, name };
+    await db.collection('users').insertOne(newUser);
 
-    // ✅ Insert new user
-    const newUserId = await new Promise((resolve, reject) => {
-      db.run(
-        'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-        [email, hashedPassword, name || null],
-        function (err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
-        }
-      );
-    });
-
-    // ✅ Generate JWT token
-    const token = jwt.sign(
-      { id: newUserId, email },
-      process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: '7d' }
-    );
-
-    // ✅ Success response
-    res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: newUserId,
-        email,
-        name: name || null,
-      },
-    });
+    res.status(201).json({ message: 'User registered successfully ✅' });
   } catch (error) {
-    console.error('REGISTER ERROR:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
-/* =========================
-   LOGIN USER
-========================= */
+// ✅ Login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
     const db = getDB();
+    const user = await db.collection('users').findOne({ email });
 
-    // ✅ Find user
-    const user = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
-
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // ✅ Verify password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // ✅ Generate token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: '7d' }
-    );
-
-    // ✅ Success
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
     });
+
+    res.json({ message: 'Login successful ✅', token });
   } catch (error) {
-    console.error('LOGIN ERROR:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    res.status(500).json({ error: 'Login failed', details: error.message });
   }
-});
-
-/* =========================
-   VERIFY TOKEN
-========================= */
-router.get('/verify', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token required' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET || 'default-secret', (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
-    }
-    res.json({ valid: true, user });
-  });
 });
 
 module.exports = router;
-// ✅ Check Auth Status
-router.get('/status', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ valid: false, message: 'Token missing' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
-    return res.status(200).json({
-      valid: true,
-      message: 'Token is valid',
-      user: {
-        id: decoded.id,
-        email: decoded.email
-      }
-    });
-  } catch (err) {
-    return res.status(401).json({ valid: false, message: 'Invalid or expired token' });
-  }
-});
-
